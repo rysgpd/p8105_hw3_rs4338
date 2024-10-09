@@ -3,12 +3,34 @@ title: "p8105_hw3_rs4338"
 author: "Rebecca Shyu"
 date: "2024-10-08"
 output: github_document
+always_allow_html: true
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(haven)
+library(kableExtra)
+library(leaflet)
+
+knitr::opts_chunk$set(
+	echo = TRUE,
+	warning = FALSE,
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "100%",
+	dpi=300
+)
+
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+
 ```
 
 ## Problem 0:
@@ -21,24 +43,57 @@ library(haven)
 ```{r problem2_importdata, message=FALSE}
 
 nhanes_demo = read_csv("data/nhanes/nhanes_covar.csv", 
-                       skip = 4, 
-                       col_types = cols(
-                            education = "factor")) %>% 
+                       skip = 4) %>% 
   janitor::clean_names() %>% 
   drop_na() %>% 
   filter(
     age >= 21
   ) %>% 
   mutate(
-    sex = ifelse(sex == 1, "Male", "Female")
-  )
+    sex = ifelse(sex == 1, "Male", "Female"),
+    education = 
+      case_match(
+        education,
+        1 ~ "Less than high school",
+        2 ~ "High school equivalent",
+        3 ~ "More than high school"
+      ),
+    education = factor(education, levels = c("Less than high school", "High school equivalent", "More than high school"))
+  ) 
 
-nhanes_acc_data = read_csv("data/nhanes/nhanes_accel.csv") %>% 
+nhanes_acc_data = read_csv("data/nhanes/nhanes_accel.csv", show_col_types = FALSE) %>% 
     janitor::clean_names()
 
+# join the demographic and accelerometer datasets
+nhanes = left_join(nhanes_demo, nhanes_acc_data, by="seqn")
+
 ```
 
-```{r pressure, echo=FALSE}
+Reader friendly table for the number of men and women in each education category, and create a visualization of the age distributions for men and women in each education category.
+
+* I decided to use a density plot to visualize the age distributions for men and women in each education category because the histogram was not easily interpretable and rigid. I overlapped the density plots for men and women to easily compare them. 
+* It appears that the distributions across all educational levels for men are bi-modal while women are unimodal. 
+* For the less than high school education level, it leaned to more older populations for both men and women.
+* For the high school equivalent education level, it looked like a steady incline for women and it peaked around age 70. For men, it was pretty consistent throughout and then declined after age 60. 
+* For the more than high school education level, women had up to 0.025 density around age 30, which shows more education among younger women. Similarly, but not as high in comparison to women, younger men were higher than older men. 
+
+```{r}
+
+nhanes %>% 
+  group_by(education, sex) %>% 
+  count() %>% 
+  arrange(education) %>% 
+  knitr::kable() %>% 
+  collapse_rows(columns = 1)
+
+nhanes %>% 
+  group_by(education, sex) %>% 
+  ggplot(aes(x = age, fill = sex)) +
+  geom_density(alpha = .3) +
+  facet_grid(. ~ education) +
+  labs(
+    title = "Density Plots of Ages Across Genders & Education Levels" 
+    )
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
