@@ -77,7 +77,7 @@ Reader friendly table for the number of men and women in each education category
 * For the high school equivalent education level, it looked like a steady incline for women and it peaked around age 70. For men, it was pretty consistent throughout and then declined after age 60. 
 * For the more than high school education level, women had up to 0.025 density around age 30, which shows more education among younger women. Similarly, but not as high in comparison to women, younger men were higher than older men. 
 
-```{r}
+```{r prob2_genderedu}
 
 nhanes %>% 
   group_by(education, sex) %>% 
@@ -95,5 +95,24 @@ nhanes %>%
     title = "Density Plots of Ages Across Genders & Education Levels" 
     )
 
+```
+
+```{r prob2_total_activity, message=FALSE}
+
+nhanes = 
+  nhanes %>% 
+  mutate(
+    total_activity = rowSums(across(min1:min1440))
+  ) %>% 
+  relocate(total_activity, .after = education)
+
+nhanes %>% 
+  ggplot(aes(x = age, y = total_activity, color = sex)) +
+  geom_point(alpha = .8) +
+  geom_smooth(se = FALSE) +
+  facet_grid(. ~ education) +
+  labs(
+    title = "Scatterplots of Ages x Total Activity Across Education Levels" 
+    )
 ```
 
