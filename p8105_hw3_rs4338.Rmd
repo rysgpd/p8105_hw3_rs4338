@@ -15,7 +15,7 @@ library(leaflet)
 knitr::opts_chunk$set(
 	echo = TRUE,
 	warning = FALSE,
-  fig.width = 6,
+  fig.width = 8,
   fig.asp = .6,
   out.width = "100%",
 	dpi=300
@@ -39,6 +39,12 @@ scale_fill_discrete = scale_fill_viridis_d
 * Create a single .Rmd file named p8105_hw3_rs4338.Rmd that renders to github_document
 * Create a subdirectory (data) to store the local data files, and use relative paths to access these data files
 * Submit a link to your repo via Courseworks: https://github.com/rysgpd/p8105_hw3_rs4338
+
+## Problem 1:
+
+* Extra practice on own.
+
+## Problem 2:
 
 ```{r problem2_importdata, message=FALSE}
 
@@ -67,9 +73,10 @@ nhanes_acc_data = read_csv("data/nhanes/nhanes_accel.csv", show_col_types = FALS
   pivot_longer(
     cols = min1:min1440,
     names_to = "minute",
-    values_to = "mims_data"
-  )
-  
+    values_to = "mims_data",
+    names_prefix = "min"
+  ) %>% 
+  mutate(minute = as.numeric(minute))
 
 # join the demographic and accelerometer datasets
 nhanes = inner_join(nhanes_demo, nhanes_acc_data, by="seqn")
@@ -87,8 +94,7 @@ Reader friendly table for the number of men and women in each education category
 ```{r prob2_genderedu}
 
 nhanes %>% 
-  group_by(seqn) %>% 
-  slice(1) %>% 
+  distinct(seqn, .keep_all = TRUE) %>%
   group_by(education, sex) %>% 
   count() %>% 
   arrange(education) %>% 
@@ -96,15 +102,15 @@ nhanes %>%
   collapse_rows(columns = 1)
 
 nhanes %>% 
-  group_by(seqn) %>% 
-  slice(1) %>% 
+  distinct(seqn, .keep_all = TRUE) %>%
   group_by(education, sex) %>% 
   ggplot(aes(x = age, fill = sex)) +
   geom_density(alpha = .3) +
   facet_grid(. ~ education) +
   labs(
     title = "Density Plots of Ages Across Genders & Education Levels" 
-    )
+    ) +
+  theme(plot.title = element_text(hjust = 0.5))
 
 ```
 
@@ -114,58 +120,41 @@ Comments about the Total Activity Across Ages, comparing men and women and for e
 * For high school equivalent and more than high school, women are almost always higher than men. For less than high school, younger women have higher activity until age 40, then the men have higher total activity. 
 * The trend lines start at the highest for less than high school, but ends at the lowest also for the less than high school level. More than high school seems to have less variability in general, but has the most extreme outliers. 
 
-```{r prob2_total_activity, eval=FALSE}
+
+```{r prob2_total_activity, message=FALSE}
 
 nhanes = 
-  nhanes %>% 
-  mutate(
-    total_activity = rowSums(across(min1:min1440))
-  ) %>% 
-  relocate(total_activity, .after = education)
-
-nhanes %>% 
-  ggplot(aes(x = age, y = total_activity, color = sex)) +
-  geom_point(alpha = .8) +
-  geom_smooth(se = FALSE) +
-  facet_grid(. ~ education) +
-  labs(
-    title = "Scatterplots of Ages x Total Activity Across Education Levels" 
-    )
-```
-
-```{r prob2_total_activity2, message=FALSE}
-
-nhanes2 = 
   nhanes %>% 
   group_by(seqn) %>% 
   mutate(
     total_activity = sum(mims_data)
   )
 
-nhanes2 %>% 
-  group_by(seqn) %>% 
-  slice(1) %>% 
+nhanes %>% 
+  distinct(seqn, .keep_all = TRUE) %>% 
   ggplot(aes(x = age, y = total_activity, color = sex)) +
   geom_point(alpha = .8) +
   geom_smooth(se = FALSE) +
   facet_grid(. ~ education) +
   labs(
     title = "Scatterplots of Ages x Total Activity Across Education Levels" 
-    )
+    ) +
+  theme(plot.title = element_text(hjust = 0.5))
 ```
 
 Accelerometer Data Over 24 Hours for each education level and across sexes.
 
-```{r, eval=FALSE}
+```{r}
 
 nhanes %>% 
-  ggplot(aes(x = age, y = total_activity, color = sex)) +
-  geom_point(alpha = .8) +
-  geom_smooth(se = FALSE) +
+  ggplot(aes(x = minute, y = mims_data, color = sex)) +
+  geom_point(size = 0.001, alpha = 0.2) +
+  geom_smooth(se = FALSE, linewidth=0.5) +
   facet_grid(. ~ education) +
   labs(
-    title = "Scatterplots of Ages x Total Activity Across Education Levels" 
-    )
+    title = "24 Hour Accelerometer Data Across Education Levels by Sex" 
+    ) +
+  theme(plot.title = element_text(hjust = 0.5))
 
 ```
 
