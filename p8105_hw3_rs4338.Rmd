@@ -98,7 +98,7 @@ nhanes %>%
   group_by(education, sex) %>% 
   count() %>% 
   arrange(education) %>% 
-  knitr::kable() %>% 
+  knitr::kable(col.names = c("Education", "Sex", "Number of Participants"), caption = "NHANES Accelerometer Demographics Breakdown") %>% 
   collapse_rows(columns = 1)
 
 nhanes %>% 
@@ -108,7 +108,9 @@ nhanes %>%
   geom_density(alpha = .3) +
   facet_grid(. ~ education) +
   labs(
-    title = "Density Plots of Ages Across Genders & Education Levels" 
+    title = "Density Plots of Ages Across Genders & Education Levels",
+    x = "Age (Years)",
+    y = "Density"
     ) +
   theme(plot.title = element_text(hjust = 0.5))
 
@@ -137,14 +139,25 @@ nhanes %>%
   geom_smooth(se = FALSE) +
   facet_grid(. ~ education) +
   labs(
-    title = "Scatterplots of Ages x Total Activity Across Education Levels" 
+    title = "Scatterplots of Ages x Total Activity Across Education Levels",
+    x = "Age (Years)",
+    y = "Total Activity (MIMS-Unit)",
+    colour="Gender" 
     ) +
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
 Accelerometer Data Over 24 Hours for each education level and across sexes.
 
-```{r}
+* From the plot below, it looks like both female and male populations for each education level showed very similar trends and patterns. 
+  * Especially for the Less than high school level, those lines are practically the same.
+  * For the other two, women seem to have a slightly higher MIMS level for the entire day until the end when the lines converge again.
+  * The most separation is in the more than high school group.
+* It's a general pattern where most people have low MIMS activity at the beginning/midnight (first 250 minutes), which makes sense because the activity begins to pick up quickly when people start to wake up. 
+* For less than high school, the peak is around noon and slowly goes down after that until the sharp drop off around 10 pm. The high school equivalent level has a more stable pattern and stays pretty stagnant until a little earlier than the less than high school group. Lastly, the more than high school level has a little higher plateau than the rest of the levels and similarly dips at the time that high school equivalent does. 
+* Lastly, the range for more than high school is the largest out of the three. Women seem to have more activity in the morning, while men have more activity in the evening. These go up to about 80 MIMS units.
+
+```{r prob2_acceldata_24hours, message=FALSE}
 
 nhanes %>% 
   ggplot(aes(x = minute, y = mims_data, color = sex)) +
@@ -152,7 +165,10 @@ nhanes %>%
   geom_smooth(se = FALSE, linewidth=0.5) +
   facet_grid(. ~ education) +
   labs(
-    title = "24 Hour Accelerometer Data Across Education Levels by Sex" 
+    title = "24 Hour Accelerometer Data Across Education Levels by Sex",
+    x = "Time (Minutes)",
+    y = "Monitor-Independent Movement Summary (MIMS-unit)",
+    colour="Gender"
     ) +
   theme(plot.title = element_text(hjust = 0.5))
 
