@@ -61,12 +61,19 @@ nhanes_demo = read_csv("data/nhanes/nhanes_covar.csv",
     education = factor(education, levels = c("Less than high school", "High school equivalent", "More than high school"))
   ) 
 
-nhanes_acc_data = read_csv("data/nhanes/nhanes_accel.csv", show_col_types = FALSE) %>% 
-    janitor::clean_names()
+nhanes_acc_data = read_csv("data/nhanes/nhanes_accel.csv", show_col_types = FALSE) %>%
+  janitor::clean_names() %>% 
+  distinct() %>% 
+  pivot_longer(
+    cols = min1:min1440,
+    names_to = "minute",
+    values_to = "mims_data"
+  )
+  
 
 # join the demographic and accelerometer datasets
-nhanes = left_join(nhanes_demo, nhanes_acc_data, by="seqn")
-
+nhanes = inner_join(nhanes_demo, nhanes_acc_data, by="seqn")
+# there are 22 patients who don't have any demographic data
 ```
 
 Reader friendly table for the number of men and women in each education category, and create a visualization of the age distributions for men and women in each education category.
@@ -80,6 +87,8 @@ Reader friendly table for the number of men and women in each education category
 ```{r prob2_genderedu}
 
 nhanes %>% 
+  group_by(seqn) %>% 
+  slice(1) %>% 
   group_by(education, sex) %>% 
   count() %>% 
   arrange(education) %>% 
@@ -87,6 +96,8 @@ nhanes %>%
   collapse_rows(columns = 1)
 
 nhanes %>% 
+  group_by(seqn) %>% 
+  slice(1) %>% 
   group_by(education, sex) %>% 
   ggplot(aes(x = age, fill = sex)) +
   geom_density(alpha = .3) +
@@ -97,7 +108,13 @@ nhanes %>%
 
 ```
 
-```{r prob2_total_activity, message=FALSE}
+Comments about the Total Activity Across Ages, comparing men and women and for each education level:
+
+* For all education levels and both sexes, there is a generally downward trend of total activity (minutes) measured. There are a few exceptions that have slight peaks around ages 60 (less than high school for both, more than high school for men) or 70 (high school equivalent).
+* For high school equivalent and more than high school, women are almost always higher than men. For less than high school, younger women have higher activity until age 40, then the men have higher total activity. 
+* The trend lines start at the highest for less than high school, but ends at the lowest also for the less than high school level. More than high school seems to have less variability in general, but has the most extreme outliers. 
+
+```{r prob2_total_activity, eval=FALSE}
 
 nhanes = 
   nhanes %>% 
@@ -114,5 +131,41 @@ nhanes %>%
   labs(
     title = "Scatterplots of Ages x Total Activity Across Education Levels" 
     )
+```
+
+```{r prob2_total_activity2, message=FALSE}
+
+nhanes2 = 
+  nhanes %>% 
+  group_by(seqn) %>% 
+  mutate(
+    total_activity = sum(mims_data)
+  )
+
+nhanes2 %>% 
+  group_by(seqn) %>% 
+  slice(1) %>% 
+  ggplot(aes(x = age, y = total_activity, color = sex)) +
+  geom_point(alpha = .8) +
+  geom_smooth(se = FALSE) +
+  facet_grid(. ~ education) +
+  labs(
+    title = "Scatterplots of Ages x Total Activity Across Education Levels" 
+    )
+```
+
+Accelerometer Data Over 24 Hours for each education level and across sexes.
+
+```{r, eval=FALSE}
+
+nhanes %>% 
+  ggplot(aes(x = age, y = total_activity, color = sex)) +
+  geom_point(alpha = .8) +
+  geom_smooth(se = FALSE) +
+  facet_grid(. ~ education) +
+  labs(
+    title = "Scatterplots of Ages x Total Activity Across Education Levels" 
+    )
+
 ```
 
