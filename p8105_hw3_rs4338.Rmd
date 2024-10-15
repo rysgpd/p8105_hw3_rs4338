@@ -83,7 +83,7 @@ nhanes = inner_join(nhanes_demo, nhanes_acc_data, by="seqn")
 # there are 22 patients who don't have any demographic data
 ```
 
-Reader friendly table for the number of men and women in each education category, and create a visualization of the age distributions for men and women in each education category.
+### Reader friendly table for the number of men and women in each education category, and create a visualization of the age distributions for men and women in each education category.
 
 * I decided to use a density plot to visualize the age distributions for men and women in each education category because the histogram was not easily interpretable and rigid. I overlapped the density plots for men and women to easily compare them. 
 * It appears that the distributions across all educational levels for men are bi-modal while women are unimodal. 
@@ -92,6 +92,18 @@ Reader friendly table for the number of men and women in each education category
 * For the more than high school education level, women had up to 0.025 density around age 30, which shows more education among younger women. Similarly, but not as high in comparison to women, younger men were higher than older men. 
 
 ```{r prob2_genderedu}
+
+nhanes %>% 
+  distinct(seqn, .keep_all = TRUE) %>%
+  group_by(education, sex) %>% 
+  count() %>% 
+  arrange(education) %>% 
+  pivot_wider(
+    names_from = sex,
+    values_from = n
+  )%>% 
+  knitr::kable(col.names = c("Education Level", "Female (n)", "Male (n)"), caption = "NHANES Accelerometer Demographics Breakdown")
+
 
 nhanes %>% 
   distinct(seqn, .keep_all = TRUE) %>%
@@ -116,7 +128,7 @@ nhanes %>%
 
 ```
 
-Comments about the Total Activity Across Ages, comparing men and women and for each education level:
+### Comments about the Total Activity Across Ages, comparing men and women and for each education level:
 
 * For all education levels and both sexes, there is a generally downward trend of total activity (minutes) measured. There are a few exceptions that have slight peaks around ages 60 (less than high school for both, more than high school for men) or 70 (high school equivalent).
 * For high school equivalent and more than high school, women are almost always higher than men. For less than high school, younger women have higher activity until age 40, then the men have higher total activity. 
@@ -142,12 +154,12 @@ nhanes %>%
     title = "Scatterplots of Ages x Total Activity Across Education Levels",
     x = "Age (Years)",
     y = "Total Activity (MIMS-Unit)",
-    colour="Gender" 
+    colour="Sex" 
     ) +
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
-Accelerometer Data Over 24 Hours for each education level and across sexes.
+### Accelerometer Data Over 24 Hours for each education level and across sexes.
 
 * From the plot below, it looks like both female and male populations for each education level showed very similar trends and patterns. 
   * Especially for the Less than high school level, those lines are practically the same.
@@ -168,7 +180,7 @@ nhanes %>%
     title = "24 Hour Accelerometer Data Across Education Levels by Sex",
     x = "Time (Minutes)",
     y = "Monitor-Independent Movement Summary (MIMS-unit)",
-    colour="Gender"
+    colour="Sex"
     ) +
   theme(plot.title = element_text(hjust = 0.5))
 
@@ -215,14 +227,14 @@ citi_bike =
 #colSums(is.na(citi_bike))
 ```
 
-Describing the resulting dataset: 
+### Describing the resulting dataset: 
 
 * This dataset has `r citi_bike %>% count()` unique rides after combining all four data files. There are `r citi_bike %>% filter(year == 2020) %>% count()` and `r citi_bike %>% filter(year == 2024) %>% count()` rides in the months of January/July of 2020 and 2024 respectively. 
 * There are `r citi_bike %>% filter(member_casual == "member") %>% count()` member rides total and `r citi_bike %>% filter(member_casual == "casual") %>% count()` casual rides total. 
 * The range of duration is from `r citi_bike %>% pull(duration) %>% min()` to `r citi_bike %>% pull(duration) %>% max()` minutes.
 * There are 43 rides without a start_station_name and 207 rides without an end_station_name. I have decided to keep these rides in the dataset because there are many questions that don't involve the station names, and all other variables are included. 
 
-A reader-friendly table for the total number of rides in each combination of year and month (January 2020, July 2020, January 2024, and July 2024). 
+### A reader-friendly table for the total number of rides in each combination of year and month (January 2020, July 2020, January 2024, and July 2024). 
 
 * This table shows that for each year/month combination, the number of member rides were overwhelmingly more than casual rides. By July 2024, there were about 3x as many member rides than casual. 
 * The number of rides from each year and month increased each time for both rider groups except for between July 2020 and January 2024 - casual rides decreased and member rides barely increased. This, however, does make sense because of the weather conditions, alongside more visitors, that make biking more enjoyable in the summer than winter months. 
@@ -234,11 +246,23 @@ citi_bike %>%
   group_by(year, month, member_casual) %>% 
   count() %>% 
   arrange(year) %>% 
+  pivot_wider(
+    names_from = member_casual,
+    values_from = n
+  ) %>% 
+  knitr::kable(col.names = c("Year", "Month", "Casual Rides (n)", "Member Rides (n)"), caption = "Citi Bike Rides by Year, Month, and Rider Type") %>% 
+  collapse_rows(columns = 1)
+
+
+citi_bike %>% 
+  group_by(year, month, member_casual) %>% 
+  count() %>% 
+  arrange(year) %>% 
   knitr::kable(col.names = c("Year", "Month", "Rider Type", "Number of Riders"), caption = "Citi Bike Rides by Year, Month, and Rider Type") %>% 
   collapse_rows(columns = c(1,2))
 ```
 
-Here are the top 5 popular starting stations for July 2024. 
+### Here are the top 5 popular starting stations for July 2024. 
 
 * The most popular station is Pier 61 at Chelsea Piers, with 163 rides originating there.
 
@@ -255,25 +279,52 @@ citi_bike %>%
   knitr::kable(col.names = c("Starting Station", "Number of Rides Originating Here"), caption = "The 5 Most Popular Starting Citi Bike Stations of July 2024")
 ```
 
-Looking at the effects of the day of the week, month, and year on median ride duration:
+### Looking at the effects of the day of the week, month, and year on median ride duration:
 
-```{r}
-
-citi_bike %>% 
-  group_by(weekdays) %>% 
-  summarize(median = median(duration))
-
-
-  ggplot(aes(x = weekdays, y = duration, fill = weekdays)) +
-  geom_boxplot() +
-  facet_grid(month ~ year)
+```{r prob3_median, message=FALSE}
 
 citi_bike %>% 
-  ggplot(aes(x = weekdays, y = duration, fill = weekdays)) +
-  geom_boxplot() +
-  facet_grid(month ~ year)
+  group_by(weekdays, month, year) %>% 
+  summarize(median = median(duration)) %>% 
+  ggplot(aes(x = weekdays, y = median, group=1)) +
+  geom_line()+
+  geom_point() +
+  facet_grid(month ~ year) +
+  labs(
+    title = "Effects of Day of Week, Month, and Year on Median Ride Duration",
+    x = "Weekday",
+    y = "Median Ride Duration (Minutes)"
+    ) +
+  theme(
+    panel.background = element_rect(fill = NA, color = "black"),
+    axis.text.x=element_text(angle = 45, vjust = 1, hjust=1),
+    plot.title = element_text(hjust = 0.5)
+  )
 
 
 ```
 
+### The impact of month, membership status, and bike type on the distribution of ride duration:
 
+```{r prob3_duration, message=FALSE}
+
+citi_bike %>% 
+  filter(
+    year == 2024
+  ) %>% 
+  group_by(month, member_casual, rideable_type) %>% 
+  ggplot(aes(x = month, y = duration)) +
+  geom_boxplot()+
+  facet_grid(member_casual ~ rideable_type) +
+  labs(
+    title = "Effects of Month, Membership Status, and Bike Type on the Distribution of Ride Duration",
+    x = "Month",
+    y = "Ride Duration (Minutes)"
+    ) +
+  theme(
+    panel.background = element_rect(fill = NA, color = "black"),
+    plot.title = element_text(hjust = 0.5)
+  )
+
+
+```
