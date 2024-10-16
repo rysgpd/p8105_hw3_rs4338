@@ -11,6 +11,8 @@ library(tidyverse)
 library(haven)
 library(kableExtra)
 library(leaflet)
+library(p8105.datasets)
+library(patchwork)
 
 knitr::opts_chunk$set(
 	echo = TRUE,
@@ -42,7 +44,78 @@ scale_fill_discrete = scale_fill_viridis_d
 
 ## Problem 1:
 
-* Extra practice on own.
+* This dataset has `r ny_noaa %>% ncol()` columns, including variables of date, precipitation (tenths of mm), snowfall (mm), snow depth (mm), minimum temperature (tenths of degrees in Celsius), and maximum temperature (tenths of degrees in Celsius) and `r ny_noaa %>% nrow()` rows of data. There are `r ny_noaa %>% distinct(id) %>% count()` unique ids.
+* Looking at the summary, snowfall and snow depth have a lot of zeros and NAs; specifically there are `r ny_noaa %>% filter(snow == 0) %>% count()` zeros and `r ny_noaa %>% filter(is.na(snow)) %>% count()` NAs. The zeros make sense because it doesn't snow most months, while rain doesn't have as many zeros because it can rain at any season. 
+
+```{r prob1_import, message=FALSE}
+data("ny_noaa")
+
+summary(ny_noaa)
+
+ny_noaa =
+  ny_noaa %>% 
+  mutate(
+    tmin = as.numeric(tmin),
+    tmax = as.numeric(tmax)
+  ) %>%
+  relocate(tmin, .before=tmax) %>% 
+  separate(date, c("year", "month", "date"), convert=TRUE)
+```
+### Average Max Temp in Jan/July
+
+* This plot is a kind of a mess. There are over 700 IDs so putting them all on a plot like this doesn't really give an interpretable structure other than they are all kind of similiar in terms of ups and downs. 
+* January is lower than July which makes sense. There is an outlier in July in the late 1980s where it's colder than the rest. There's another outlier in the early 1980s in January where it's also colder than the rest. Otherwise, not many crazy outliers. 
+
+
+```{r prob1_avgmax, message=FALSE}
+ny_noaa %>% 
+  drop_na(tmax) %>% 
+  filter(
+    month == 1 | month == 7
+  ) %>% 
+  group_by(id, year, month) %>%
+  summarise(mean_tmax = mean(tmax, na.rm=TRUE)) %>% 
+  ggplot(aes(x = year, y=mean_tmax, group = id)) +
+  geom_point() + geom_line()+
+  facet_grid(~month)
+```
+
+
+### TMin vs TMax & Distribution of Snowfall
+
+* Based on the hex plot, it's clustered in the middle but there is variability on all aspects. Typically, it looks like as min goes up, max also goes up, but I'm confused at the outlier on the bottom (ex: -250 min and -400 max) which doesn't make sense. 
+* The density plot shows that the general pattern is very similar to each year, but the peaks are getting lower over time. There are many peaks (multimodal).
+```{r prob1_tminmax_snow, warning=FALSE}
+plot1 = 
+  ny_noaa %>% 
+  ggplot(aes(x=tmin, y=tmax)) +
+  geom_hex()+
+  labs(
+    title = "Min Temp vs Max Temp ",
+    x = "Tenths of Degrees in C",
+    y = "Tenths of Degrees in C"
+    ) +
+  theme(plot.title = element_text(hjust = 0.5))
+
+plot2 = 
+  ny_noaa %>% 
+  filter (
+    snow > 0,
+    snow < 100
+    ) %>%
+  group_by(year) %>% 
+  ggplot(aes(x=snow, fill = as.factor(year))) +
+  geom_density(alpha = 0.4)+
+  labs(
+    title = "Distribution of Snowfall 0-100 mm",
+    x = "Years",
+    y = "Density"
+    ) +
+  theme(plot.title = element_text(hjust = 0.5))
+
+plot1 + plot2
+```
+
 
 ## Problem 2:
 
@@ -161,7 +234,7 @@ nhanes %>%
 * For less than high school, the peak is around noon and slowly goes down after that until the sharp drop off around 10 pm. The high school equivalent level has a more stable pattern and stays pretty stagnant until a little earlier than the less than high school group. Lastly, the more than high school level has a little higher plateau than the rest of the levels and similarly dips at the time that high school equivalent does. 
 * Lastly, the range for more than high school is the largest out of the three. Women seem to have more activity in the morning, while men have more activity in the evening. These go up to about 80 MIMS units.
 
-```{r prob2_acceldata_24hours, eval=FALSE, message=FALSE}
+```{r prob2_acceldata_24hours, message=FALSE}
 
 nhanes %>% 
   ggplot(aes(x = minute, y = mims_data, color = sex)) +
