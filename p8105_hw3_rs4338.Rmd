@@ -85,6 +85,7 @@ nhanes = inner_join(nhanes_demo, nhanes_acc_data, by="seqn")
 
 ### Reader friendly table for the number of men and women in each education category, and create a visualization of the age distributions for men and women in each education category.
 
+* There seems to be similar number breakdowns by sex, except for High School Equivalent where there are more males. There is also a lot more participants, about twice the amount of the other two (1:1:2 ratio), for More than High School.
 * I decided to use a density plot to visualize the age distributions for men and women in each education category because the histogram was not easily interpretable and rigid. I overlapped the density plots for men and women to easily compare them. 
 * It appears that the distributions across all educational levels for men are bi-modal while women are unimodal. 
 * For the less than high school education level, it leaned to more older populations for both men and women.
@@ -103,15 +104,6 @@ nhanes %>%
     values_from = n
   )%>% 
   knitr::kable(col.names = c("Education Level", "Female (n)", "Male (n)"), caption = "NHANES Accelerometer Demographics Breakdown")
-
-
-nhanes %>% 
-  distinct(seqn, .keep_all = TRUE) %>%
-  group_by(education, sex) %>% 
-  count() %>% 
-  arrange(education) %>% 
-  knitr::kable(col.names = c("Education", "Sex", "Number of Participants"), caption = "NHANES Accelerometer Demographics Breakdown") %>% 
-  collapse_rows(columns = 1)
 
 nhanes %>% 
   distinct(seqn, .keep_all = TRUE) %>%
@@ -252,14 +244,6 @@ citi_bike %>%
   ) %>% 
   knitr::kable(col.names = c("Year", "Month", "Casual Rides (n)", "Member Rides (n)"), caption = "Citi Bike Rides by Year, Month, and Rider Type") %>% 
   collapse_rows(columns = 1)
-
-
-citi_bike %>% 
-  group_by(year, month, member_casual) %>% 
-  count() %>% 
-  arrange(year) %>% 
-  knitr::kable(col.names = c("Year", "Month", "Rider Type", "Number of Riders"), caption = "Citi Bike Rides by Year, Month, and Rider Type") %>% 
-  collapse_rows(columns = c(1,2))
 ```
 
 ### Here are the top 5 popular starting stations for July 2024. 
@@ -280,6 +264,10 @@ citi_bike %>%
 ```
 
 ### Looking at the effects of the day of the week, month, and year on median ride duration:
+
+* Based on the plots, which we follow in a line from Monday to Sunday, we can see that 2020 had higher median ride durations for each day and across months. This could be maybe explained by price hikes by minute/miles that Citi Bikes has implemented since 2020. Also, maybe the pandemic pushed people to go on longer bike rides. 
+* The median ride times during January were much lower than July which, again, makes sense because of how cold it is. 
+* Throughout the week, it looks pretty stable from Monday-Friday which makes sense because it's the work week. It does jump on the weekend (Saturday and Sunday). However, 2024 had Sundays with a smaller median than Saturdays and even dipped to the lowest of all days for January 2024. 
 
 ```{r prob3_median, message=FALSE}
 
@@ -306,6 +294,14 @@ citi_bike %>%
 
 ### The impact of month, membership status, and bike type on the distribution of ride duration:
 
+* I chose to do violin plots because it shows the distribution and is clear to understand compared to box plots which were tried, but the IQR was so small that it was messy.
+* All of the medians are very similar, so none of the factors really affect that. If anything, July is slightly higher than January for both years. 
+* The width of January's violin plots is larger than July's, showing a larger distribution of rides with smaller duration. July's, especially with electric bikes, had a less wide base and had more of the intermediate durations. 
+* For both Julys, there were many outliers that extended the range and length of the needle, which was very high for electric bikes.
+* The range of electric bikes in January were the smallest range, even smaller for casual riders, which may make sense because electric bikes made the ride faster/shorter and they are more expensive by the minute. 
+* Classic bikes had longer ranges of durations in January than July, but it looks like it was only a few outliers instead of July which had a solid number of outliers at the extremes. 
+* There also seemed to be a smaller second peak (bimodal) for the classic/January/casual combo around 75 minutes. 
+
 ```{r prob3_duration, message=FALSE}
 
 citi_bike %>% 
@@ -313,13 +309,14 @@ citi_bike %>%
     year == 2024
   ) %>% 
   group_by(month, member_casual, rideable_type) %>% 
-  ggplot(aes(x = month, y = duration)) +
-  geom_boxplot()+
+  ggplot(aes(x = month, y = duration, fill = month)) +
+  geom_violin(alpha=0.4)+
   facet_grid(member_casual ~ rideable_type) +
   labs(
     title = "Effects of Month, Membership Status, and Bike Type on the Distribution of Ride Duration",
     x = "Month",
-    y = "Ride Duration (Minutes)"
+    y = "Ride Duration (Minutes)",
+    colour="Month"
     ) +
   theme(
     panel.background = element_rect(fill = NA, color = "black"),
